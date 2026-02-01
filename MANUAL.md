@@ -14,10 +14,11 @@
 6. [Parameter Configuration](#6-parameter-configuration)
 7. [CV Calibration](#7-cv-calibration)
 8. [Display & Visual Feedback](#8-display--visual-feedback)
-9. [MIDI Integration](#9-midi-integration)
-10. [Quick Reference](#10-quick-reference)
-11. [Troubleshooting](#11-troubleshooting)
-12. [Technical Specifications](#12-technical-specifications)
+9. [External Clock Input](#9-external-clock-input)
+10. [MIDI Integration](#10-midi-integration)
+11. [Quick Reference](#11-quick-reference)
+12. [Troubleshooting](#12-troubleshooting)
+13. [Technical Specifications](#13-technical-specifications)
 
 ---
 
@@ -50,8 +51,8 @@ TECLA is built on the principle that musical complexity can emerge from simple m
 | **PWM2** | GP2 | Harmonic channel 1 |
 | **PWM3** | GP0 | Harmonic channel 2 |
 | **Gate Out** | GP1 | Digital gate/trigger output (3.3V TTL) |
-| **Slider** | GP28 | BPM control (analog input) |
-| **CV1/Pot** | GP26 | Parameter 1 control (analog input) |
+| **Slider** | GP28 | Parameter 1 control (analog input) |
+| **CV1/Pot** | GP26 | Tempo control (pot) OR Clock input (jack) |
 | **CV2/LDR** | GP27 | Parameter 2 control (analog input) |
 | **D-pad Up** | GP13 | Octave up / Chaos toggle |
 | **D-pad Down** | GP14 | Octave down / Chaos toggle |
@@ -90,8 +91,8 @@ The three PWM outputs can be connected directly to a mixer, amplifier, or headph
      GP15      │      GP3
               [▼] Octave Down (GP14)
 
-[Slider] ─────────────── BPM Control (20-220)
-[CV1 Pot] ──────────────Parameter 1
+[Slider] ─────────────── Parameter 1
+[CV1 Pot/Jack] ─────────Tempo (pot) / Clock Input (jack)
 [CV2 LDR] ──────────────Parameter 2
 
 [Extra 1] ──────────────Config / Summary
@@ -674,7 +675,46 @@ After calibration, any input voltage maps precisely to the expected parameter ra
 
 ---
 
-## 9. MIDI Integration
+## 9. External Clock Input
+
+### Overview
+
+TECLA can synchronize to an external clock source via the CV1 jack. This allows integration with modular synthesizers, drum machines, and other sequencers.
+
+### How It Works
+
+The CV1 input serves dual purposes:
+- **Potentiometer (no jack inserted):** Controls internal tempo (20-220 BPM)
+- **Jack (external clock):** Receives clock pulses for synchronization
+
+### Clock Detection
+
+The system automatically detects external clock:
+1. Rising edge detection with hysteresis (thresholds: LOW < 0.5V, HIGH > 2.0V)
+2. Once clock pulses are detected, the system switches to external clock mode
+3. Each rising edge triggers one note/step
+4. If pulses stop, the system waits (does not fall back to internal tempo)
+
+### Compatible Clock Sources
+
+- Eurorack clock modules (typically 0-5V or 0-10V pulses)
+- Drum machine sync outputs
+- DAW clock outputs (via audio interface)
+- Any pulse signal with voltage swing crossing the 2.0V threshold
+
+### Clock Mode Behavior
+
+| State | Behavior |
+|-------|----------|
+| No clock detected | CV1 pot controls tempo (internal mode) |
+| Clock detected | Notes trigger on each rising edge |
+| Clock stops | System waits for next pulse (no fallback) |
+
+**Note:** Once external clock is detected, the system stays in clock mode until power cycle. This ensures stable synchronization without accidental tempo jumps.
+
+---
+
+## 10. MIDI Integration
 
 ### USB MIDI Output
 
@@ -704,7 +744,7 @@ Clamped to 0-127 range.
 
 ---
 
-## 10. Quick Reference
+## 11. Quick Reference
 
 ### Essential Controls
 
@@ -713,8 +753,9 @@ Clamped to 0-127 range.
 | Change mode | ◄ / ► |
 | Change octave | ▲ / ▼ |
 | Toggle chaos | ▲ at octave 8 / ▼ at octave 0 |
-| Adjust BPM | Slider |
-| Control param 1 | CV1 / Potentiometer |
+| Control param 1 | Slider |
+| Adjust tempo | CV1 pot (when no clock) |
+| External clock | CV1 jack (auto-detected) |
 | Control param 2 | CV2 / LDR |
 | Enter config | Extra 1 (short) |
 | Adjust config value | ◄ / ► (in config mode) |
@@ -755,7 +796,7 @@ CV Range:       0-3.3V
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 ### No Sound
 
@@ -792,7 +833,7 @@ CV Range:       0-3.3V
 
 ---
 
-## 12. Technical Specifications
+## 13. Technical Specifications
 
 ### Hardware Platform
 

@@ -191,39 +191,63 @@ while True:
         rtos.update(current_time)  # Passar current_time (optimització: evita crida redundant)
         
         # ===== PRIORITAT ALTA: Lectura inputs usuari =====
-        # Pins:
-        #   Slider (GP28): z - Velocitat/BPM (NO calibrat, sempre 0-3.3V)
-        #   CV1/Pote (GP26): x - Paràmetre 1 (calibrat amb cv1_min/max)
+        # Pins (NOU MAPATGE):
+        #   Slider (GP28): x - Paràmetre 1 (NO calibrat, sempre 0-3.3V)
+        #   CV1/Pote (GP26): Tempo (pot) o Clock input (jack extern)
         #   CV2/LDR (GP27): y - Paràmetre 2 (calibrat amb cv2_min/max)
-        
-        z_raw = hw.get_voltage(hw.slider)      # Slider (GP28) - BPM
-        x_raw = hw.get_voltage(hw.cv1_pote)    # CV1 (GP26) - Param 1
+
+        x_raw = hw.get_voltage(hw.slider)      # Slider (GP28) - Param 1
+        tempo_raw = hw.get_voltage(hw.cv1_pote)  # CV1 (GP26) - Tempo/Clock
         y_raw = hw.get_voltage(hw.cv2_ldr)     # CV2 (GP27) - Param 2
-        
-        # Aplicar calibració NOMÉS als CV1 i CV2
-        x = get_voltage_calibrated(x_raw, cfg.cv1_min, cfg.cv1_max)
+
+        # Aplicar calibració al CV2/LDR, slider és paràmetre 1 sense calibrar
+        x = x_raw / 3.3  # Normalitzar slider a 0-1 per modes
         y = get_voltage_calibrated(y_raw, cfg.cv2_min, cfg.cv2_max)
-        z = z_raw  # Slider NO calibrat
-        
-        # BPM calculations amb z (slider, sempre 0-3.3V)
-        cfg.bpm_voltage_raw = z
-        thr_filter = smooth_value(cfg.bpm_voltage_filtered, z, cfg.bpm_voltage_smoothing)
-        cfg.bpm_voltage_filtered = thr_filter
-        raw_bpm = voltage_to_bpm(
-            thr_filter,
-            pot_min=0.0,  # Slider sempre 0-3.3V
-            pot_max=3.3,
-            bpm_min=cfg.bpm_min,
-            bpm_max=cfg.bpm_max,
-            curve=cfg.bpm_curve,
-        )
-        sleep_time = clock.update(raw_bpm, current_time)
-        
+
+        # ===== DETECCIÓ CLOCK EXTERN a CV1 =====
+        # Si detectem flancs pujants, estem rebent clock extern
+        cfg.clock_rising_edge = False
+        cv1_high = tempo_raw > cfg.clock_threshold_high
+        cv1_low = tempo_raw < cfg.clock_threshold_low
+
+        # Detectar flanc pujant (LOW→HIGH)
+        if cv1_high and not cfg.clock_last_state:
+            cfg.clock_rising_edge = True
+            cfg.clock_last_pulse_time = current_time
+            cfg.clock_mode = True  # Un cop detectat clock, quedem en mode clock
+
+        # Actualitzar estat (amb histèresi)
+        if cv1_high:
+            cfg.clock_last_state = True
+        elif cv1_low:
+            cfg.clock_last_state = False
+
+        # Mode clock: un cop activat, NO torna a mode intern
+        # Si no hi ha polsos, simplement no avancem (esperem clock)
+
+        # BPM calculations amb CV1 (només si NO estem en mode clock)
+        if not cfg.clock_mode:
+            cfg.bpm_voltage_raw = tempo_raw
+            thr_filter = smooth_value(cfg.bpm_voltage_filtered, tempo_raw, cfg.bpm_voltage_smoothing)
+            cfg.bpm_voltage_filtered = thr_filter
+            raw_bpm = voltage_to_bpm(
+                thr_filter,
+                pot_min=0.0,
+                pot_max=3.3,
+                bpm_min=cfg.bpm_min,
+                bpm_max=cfg.bpm_max,
+                curve=cfg.bpm_curve,
+            )
+            sleep_time = clock.update(raw_bpm, current_time)
+        else:
+            # En mode clock extern, mantenir l'últim sleep_time per gate duration
+            sleep_time = cfg.current_sleep_time
+
         # Guardar voltatges per als modes
-        cfg.x, cfg.y, cfg.z = x, y, z
-        
-        # Coordenades fractals: x i y estan clampats, els modes fan normalize()
-        cx = map_value(x, cfg.cv1_min, cfg.cv1_max, -1.5, 1.5)
+        cfg.x, cfg.y, cfg.z = x, y, tempo_raw
+
+        # Coordenades fractals: x normalitzat (0-1), y calibrat
+        cx = map_value(x, 0.0, 1.0, -1.5, 1.5)
         cy = map_value(y, cfg.cv2_min, cfg.cv2_max, -1.5, 1.5)
         cfg.cx, cfg.cy = cx, cy
         
@@ -246,7 +270,19 @@ while True:
             hw.pwm2.duty_cycle = 0
             hw.pwm3.duty_cycle = 0
         elif cfg.loop_mode > 0:
-            ticks = clock.consume_ticks(current_time)
+            # Consumir ticks segons mode:
+            # - Mode clock extern: només un tick per cada pols (rising edge)
+            # - Mode intern (pot): ticks segons BPM
+            if cfg.clock_mode:
+                # Mode clock extern: només avancem si hi ha rising edge
+                if cfg.clock_rising_edge:
+                    ticks = [current_time]
+                else:
+                    ticks = []  # Esperem clock, no avancem
+            else:
+                # Mode intern: ticks segons BPM del pot
+                ticks = clock.consume_ticks(current_time)
+
             for tick_time in ticks:
                 cfg.next_note_time = tick_time + sleep_time
                 mode_loader.execute_mode(cfg.loop_mode, x, y, sleep_time, cx, cy)

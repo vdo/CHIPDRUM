@@ -135,10 +135,11 @@ def process_buttons(hw, cfg, rtos, current_time):
     
     # Botó cruceta 3: Decrementar valor amb acceleració
     if hw.boton_crueta_3.value and not cfg.calibration_mode:
-        if cfg.button_debounce_time[2] == 0:
+        first_press = (cfg.button_debounce_time[2] == 0)
+        if first_press:
             cfg.button_debounce_time[2] = current_time
             cfg.config_hold_time = 0.0
-        
+
         # Calcular acceleració exponencial - Progressió més natural
         cfg.config_hold_time = current_time - cfg.button_debounce_time[2]
         if cfg.config_hold_time > 2.0:      # Acceleració màxima més tard
@@ -149,17 +150,17 @@ def process_buttons(hw, cfg, rtos, current_time):
             cfg.config_acceleration = 2
         else:
             cfg.config_acceleration = 1
-        
+
         cfg.last_interaction_time = current_time
 
         if cfg.configout == 0:
-            # MODE CANVI: Sempre canviar només 1 mode (NO acceleració)
-            # Usar debounce per evitar múltiples canvis
-            if current_time - cfg.button_debounce_time[2] > 0.15:  # 150ms mínim
+            # MODE CANVI: Actua immediatament al primer press, després repeteix cada 150ms
+            if first_press or (current_time - cfg.button_debounce_time[2] > 0.15):
                 cfg.loop_mode = (cfg.loop_mode - 1) if cfg.loop_mode > 1 else 14
                 cfg.configout = 0  # Mantenir en mode selecció de modes
                 rtos.stop_all_notes()
-                cfg.button_debounce_time[2] = current_time  # Reset debounce
+                if not first_press:
+                    cfg.button_debounce_time[2] = current_time  # Reset debounce for repeats
         elif cfg.configout == 1:
             cfg.duty1 = max(1, cfg.duty1 - cfg.config_acceleration)
             rtos.stop_all_notes()  # Apagar gate al canviar duty
@@ -187,10 +188,11 @@ def process_buttons(hw, cfg, rtos, current_time):
     
     # Botó cruceta 4: Incrementar valor amb acceleració
     if hw.boton_crueta_4.value and not cfg.calibration_mode:
-        if cfg.button_debounce_time[3] == 0:
+        first_press = (cfg.button_debounce_time[3] == 0)
+        if first_press:
             cfg.button_debounce_time[3] = current_time
             cfg.config_hold_time = 0.0
-        
+
         # Calcular acceleració exponencial - Progressió més natural
         cfg.config_hold_time = current_time - cfg.button_debounce_time[3]
         if cfg.config_hold_time > 2.0:      # Acceleració màxima més tard
@@ -201,17 +203,17 @@ def process_buttons(hw, cfg, rtos, current_time):
             cfg.config_acceleration = 2
         else:
             cfg.config_acceleration = 1
-        
+
         cfg.last_interaction_time = current_time
-        
+
         if cfg.configout == 0:
-            # MODE CANVI: Sempre canviar només 1 mode (NO acceleració)
-            # Usar debounce per evitar múltiples canvis
-            if current_time - cfg.button_debounce_time[3] > 0.15:  # 150ms mínim
+            # MODE CANVI: Actua immediatament al primer press, després repeteix cada 150ms
+            if first_press or (current_time - cfg.button_debounce_time[3] > 0.15):
                 cfg.loop_mode = (cfg.loop_mode + 1) if cfg.loop_mode < 14 else 1
                 cfg.configout = 0  # Mantenir en mode selecció de modes
                 rtos.stop_all_notes()
-                cfg.button_debounce_time[3] = current_time  # Reset debounce
+                if not first_press:
+                    cfg.button_debounce_time[3] = current_time  # Reset debounce for repeats
         elif cfg.configout == 1:
             cfg.duty1 = min(99, cfg.duty1 + cfg.config_acceleration)
             rtos.stop_all_notes()  # Apagar gate al canviar duty

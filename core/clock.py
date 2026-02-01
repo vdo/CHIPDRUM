@@ -39,13 +39,26 @@ class MasterClock:
 
         return self.period
 
-    def consume_ticks(self, current_time, active=True):
-        """Retorna una llista de ticks que s'han de disparar fins al temps actual."""
+    def consume_ticks(self, current_time, active=True, external_tick=False):
+        """Retorna una llista de ticks que s'han de disparar fins al temps actual.
+
+        Args:
+            current_time: Temps actual
+            active: Si el clock està actiu (False = reset i no ticks)
+            external_tick: Si True, retorna un tick immediat (clock extern)
+        """
         if not active:
             self.last_tick = current_time
             self.next_tick = current_time + self.period
             return []
 
+        # Mode clock extern: un tick per cada pols rebut
+        if external_tick:
+            self.last_tick = current_time
+            self.next_tick = current_time + self.period  # Mantenir periode per si torna a intern
+            return [current_time]
+
+        # Mode intern: ticks segons BPM
         ticks = []
         while current_time >= self.next_tick and len(ticks) < self.max_catchup_ticks:
             tick_time = self.next_tick

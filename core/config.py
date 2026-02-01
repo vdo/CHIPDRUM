@@ -29,6 +29,17 @@ freqharm2 = 0      # Harmònic aplicat a PWM3
 cv1_range_config = 0  # CV1: 0=3.3V, 1=2.5V, 2=1.5V, 3=1.0V, 4=0.5V
 cv2_range_config = 0  # CV2: 0=3.3V, 1=2.5V, 2=1.5V, 3=1.0V, 4=0.5V
 
+# =============================================================================
+# CLOCK INPUT SYSTEM - CV1 pot actuar com entrada de clock extern
+# =============================================================================
+clock_mode = False           # True quan clock extern detectat, False = tempo intern (pot)
+clock_last_state = False     # Estat anterior del clock (HIGH/LOW)
+clock_rising_edge = False    # Flanc pujant detectat aquest frame
+clock_last_pulse_time = 0.0  # Temps de l'últim pols detectat
+clock_threshold_high = 2.0   # Voltatge per sobre = HIGH (rising edge)
+clock_threshold_low = 0.5    # Voltatge per sota = LOW (reset per proper rising edge)
+CLOCK_TIMEOUT_MS = 2000      # Si no hi ha polsos en 2s, torna a mode intern
+
 # Sistema d'acceleració exponencial per configuració
 config_acceleration = 1  # Factor d'acceleració (1, 2, 4, 8)
 config_hold_time = 0.0   # Temps que porta premut el botó
