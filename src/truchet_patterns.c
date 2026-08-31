@@ -70,9 +70,9 @@ uint8_t truchet_level(int bank, int x, int y, int instrument, int step) {
     x = clamp_pct(x);
     y = clamp_pct(y);
     int family = bank;
-    // Grids stores 32 internal subdivisions per bar, while TECLA receives one
-    // clock per 16th note. Sample every other map point and repeat it across
-    // two bars: the display and fill phrase stay 32 steps long without
+    // Grids stores 32 internal subdivisions per bar, while CHIPDRUM receives
+    // one clock per 16th note. Sample every other map point and repeat it
+    // across two bars: the display and fill phrase stay 32 steps long without
     // halving the audible tempo.
     size_t map_step = (size_t)(step & 15) * 2u;
     size_t offset = (size_t)instrument * 32u + map_step;

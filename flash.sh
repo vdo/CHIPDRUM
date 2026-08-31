@@ -1,14 +1,14 @@
 #!/bin/sh
-# Build and flash TECLA BASS to a connected Pico (macOS).
+# Build and flash CHIPDRUM to a connected Pico (macOS).
 #
-# The module does not need its BOOTSEL button: once TECLA BASS is running it
+# The module does not need its BOOTSEL button: once CHIPDRUM is running it
 # exposes a USB serial port, and a 1200-baud "touch" on that port reboots it
 # into the UF2 bootloader. CircuitPython boards are rebooted via their REPL.
 # If neither applies (blank board), hold BOOTSEL while plugging in USB.
 set -e
 cd "$(dirname "$0")"
 
-UF2=build/tecla_bass.uf2
+UF2=build/chipdrum.uf2
 SDK=${PICO_SDK_PATH:-$HOME/pico-sdk}
 
 # --- build ---
@@ -64,4 +64,4 @@ fi
 
 # --- flash ---
 cp "$UF2" /Volumes/RPI-RP2/
-echo "flashed - the module reboots and runs TECLA BASS"
+echo "flashed - the module reboots and runs CHIPDRUM"

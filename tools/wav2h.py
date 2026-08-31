@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert WAV drum samples into a C header for TECLA BASS.
+"""Convert WAV drum samples into a C header for CHIPDRUM.
 
 Handles PCM 8/16/24/32-bit and IEEE-float WAVs, mono or stereo, at any rate.
 Each sample is downmixed to mono, resampled to the engine rate, peak

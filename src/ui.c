@@ -99,9 +99,9 @@ static void draw_summary(const mode_t *m) {
 
 static void draw_splash(void) {
     gfx_clear();
-    gfx_text(22, 14, "TECLA", 2);
-    gfx_text(16, 34, "BASS ENGINE", 1);
-    gfx_text(46, 48, "v3.0", 1);
+    draw_centered("CHIPDRUM", 14, 2);
+    draw_centered("DRUM ENGINE", 34, 1);
+    draw_centered("v3.0", 48, 1);
     gfx_show();
     sleep_ms(900);
 }

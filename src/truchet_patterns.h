@@ -16,8 +16,8 @@
 // The OG, Electronic and Breakbeat banks all interpolate between 5x5 nodes.
 const char *truchet_bank_name(int bank);
 
-// Read one step of TECLA's 32-step (two-bar) phrase. Each 16-step bar samples
-// the corresponding Grids map at its native musical rate.
+// Read one step of CHIPDRUM's 32-step (two-bar) phrase. Each 16-step bar
+// samples the corresponding Grids map at its native musical rate.
 uint8_t truchet_level(int bank, int x, int y, int instrument, int step);
 
 // Build the stable groove heard with the FILL/DENSITY knob at noon.
