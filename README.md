@@ -7,6 +7,12 @@ Three PWM square-wave oscillators driven by six generative modes: two drum
 machines, a Turing-machine bass loop and three drones. External clock input
 and master clock output.
 
+It runs on stock TECLA CHIPTUNE hardware and replaces the CircuitPython
+firmware the module ships with. Nothing is modified on the PCB — see
+[Coming from the original TECLA firmware](#coming-from-the-original-tecla-firmware)
+for what changes, and [Reverting](#reverting-to-the-original-tecla-firmware)
+for how to put the Python firmware back.
+
 ## Panel / pin map
 
 | Jack / control | Pin | Function |
@@ -95,20 +101,100 @@ script reboots the board into the bootloader for you:
 - Already running TECLA BASS → a **1200-baud touch** on its USB serial port
   drops it into the bootloader. This is why USB stdio is enabled: a module
   screwed into a rack can be updated without reaching the PCB.
-- Still running CircuitPython → the script reboots it via the REPL
+- Still running the original CircuitPython firmware → the script unmounts
+  `CIRCUITPY` and reboots the board through the REPL
   (`microcontroller.on_next_reset(RunMode.UF2)`).
-- Blank board → hold BOOTSEL while plugging in USB, then run the script.
+- Blank or unresponsive board → hold BOOTSEL while plugging in USB, then run
+  the script.
 
-Manual equivalent, once `RPI-RP2` is mounted:
+Manual equivalent, once the `RPI-RP2` bootloader volume is mounted:
 
 ```sh
 cp build/tecla_bass.uf2 /Volumes/RPI-RP2/
 ```
 
-⚠️ Copying the `.uf2` onto a **CIRCUITPY** drive does nothing — that is just
-the Python filesystem. A UF2 only flashes via the **RPI-RP2** bootloader
-volume. Flashing erases CircuitPython; to go back, flash a CircuitPython
-`.uf2` from circuitpython.org the same way.
+⚠️ Copying the `.uf2` onto a **CIRCUITPY** drive does nothing — that drive is
+the Python filesystem, not the bootloader. A UF2 only flashes through
+**RPI-RP2**.
+
+### Coming from the original TECLA firmware
+
+A stock module runs [TECLA-code/CHIPTUNE](https://github.com/TECLA-code/CHIPTUNE):
+**Adafruit CircuitPython 10.0.1** plus a Python program — `main.py` and the
+`core/`, `modes/`, `display/`, `music/` and `lib/` packages — living on the
+`CIRCUITPY` USB drive. The Pico boots the interpreter, the interpreter reads
+`main.py` off that filesystem and runs it, so the module is patched by
+dragging files onto a drive. That firmware gives you nine algorithmic modes
+(Fractal, Riu, Tempesta, Harmonia, Bosc, Escala CV, Euclidia, Cosmos,
+Sequenciador) and sends **USB MIDI** alongside the PWM outputs.
+
+This firmware is a native C rewrite on the same hardware, and the difference
+is more than the language:
+
+- **No Python is loaded.** `tecla_bass.uf2` is bare-metal Cortex-M0+ code
+  built against the Pico SDK. There is no interpreter, no import at boot and
+  no `main.py`: the module executes the compiled image directly. Changing
+  behaviour means editing C and reflashing, not editing a file on a drive.
+- **No CIRCUITPY drive.** Flashing overwrites the whole flash — CircuitPython
+  and your Python files with it — and nothing is backed up, so copy the drive
+  somewhere first if it holds edits you care about. Over USB the module then
+  presents a plain serial port (what the 1200-baud reboot uses) and **no USB
+  MIDI device**; this firmware talks to the rack through the jacks only.
+- **Settings live in the last 4 KB flash sector**, written with
+  `flash_safe_execute`, instead of in files on the drive.
+- **The panel is re-purposed.** Here CV1 is GP26, the slider GP28, and the old
+  CV2 jack (GP27) becomes CLK IN. The CircuitPython firmware read GP28 as BPM,
+  GP27 as the mode's second CV and GP26 as the slider.
+- **The timing is different in kind:** a 25 kHz fixed-point audio interrupt
+  and the clock engine on core 0, the OLED on core 1, where the Python build
+  did everything in one interpreted loop.
+
+Nothing is soldered or rewired: same board, same jacks, same OLED. Moving in
+either direction is a UF2 copy.
+
+### Reverting to the original TECLA firmware
+
+1. **Get into the bootloader.** With TECLA BASS running, a 1200-baud touch on
+   its serial port does it without reaching the PCB:
+
+   ```sh
+   ls /dev/cu.usbmodem*                    # find the module
+   stty -f /dev/cu.usbmodemXXXX 1200
+   ```
+
+   Otherwise hold **BOOTSEL** while plugging in USB. Either way `RPI-RP2`
+   mounts.
+
+2. **Flash CircuitPython.** Download the Raspberry Pi Pico build from
+   [circuitpython.org](https://circuitpython.org/board/raspberry_pi_pico/) —
+   stock modules shipped **10.0.1** — and copy the `.uf2` across:
+
+   ```sh
+   cp ~/Downloads/adafruit-circuitpython-raspberry_pi_pico-en_US-10.0.1.uf2 /Volumes/RPI-RP2/
+   ```
+
+   The board reboots and `CIRCUITPY` appears. At this point it is a bare
+   CircuitPython board with no TECLA code on it — the OLED stays dark.
+
+3. **Copy the TECLA program back.** It lives in the upstream repository (and
+   in this one, on `master`, the last CircuitPython commit before the
+   rewrite):
+
+   ```sh
+   git clone --depth 1 https://github.com/TECLA-code/CHIPTUNE.git /tmp/tecla-orig
+   git -C /tmp/tecla-orig archive HEAD \
+       main.py reset.py settings.toml font5x8.bin core modes display music lib fonts \
+       | tar -x -C /Volumes/CIRCUITPY
+   find /Volumes/CIRCUITPY \( -name '._*' -o -name '.DS_Store' \) -delete
+   ```
+
+   About 500 KB — the same files the module shipped with, minus the macOS
+   metadata the repository carries. Eject the drive
+   (`diskutil eject /Volumes/CIRCUITPY`) and the module restarts on the
+   original firmware.
+
+Coming back to this firmware is just `./flash.sh` again: it finds the
+CIRCUITPY drive and reboots the board into the bootloader itself.
 
 ## Drums: samples and synthesis
 
