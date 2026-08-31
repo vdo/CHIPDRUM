@@ -7,8 +7,10 @@ Three PWM square-wave oscillators driven by six generative modes: two drum
 machines, a Turing-machine bass loop and three drones. External clock input
 and master clock output.
 
-It runs on stock TECLA CHIPTUNE hardware and replaces the CircuitPython
-firmware the module ships with. Nothing is modified on the PCB — see
+It runs on stock CHIPTUNE hardware, designed and built by
+[TECLA](https://www.instagram.com/tecla.cat/), and replaces the
+[CircuitPython firmware](https://github.com/TECLA-code/CHIPTUNE) the module
+ships with. Nothing is modified on the PCB — see
 [Coming from the original TECLA firmware](#coming-from-the-original-tecla-firmware)
 for what changes, and [Reverting](#reverting-to-the-original-tecla-firmware)
 for how to put the Python firmware back.
@@ -349,6 +351,26 @@ that the clock input triggers on everything from 3.3 V
 logic down to a 0.4 V attenuated gate while ignoring noise; and that every
 synth drum is loud, decays to silence and releases its voice at all TUNE and
 DECAY extremes — a stuck voice would drone forever on an output jack.
+
+## Acknowledgements
+
+- **Hardware: [TECLA](https://www.instagram.com/tecla.cat/)** — the CHIPTUNE
+  module, its PCB, panel and enclosure are TECLA's design and build. This
+  firmware exists because that hardware exists; none of it is modified here.
+  Find the modules and what else they make at
+  [@tecla.cat](https://www.instagram.com/tecla.cat/).
+- **Original firmware: [TECLA-code/CHIPTUNE](https://github.com/TECLA-code/CHIPTUNE)**
+  — the CircuitPython program the module ships with, and the reference for the
+  pin map and hardware behaviour this rewrite had to match. See
+  [Coming from the original TECLA firmware](#coming-from-the-original-tecla-firmware)
+  for the differences, and [Reverting](#reverting-to-the-original-tecla-firmware)
+  to put it back.
+- **Pattern banks: [Truchets](https://github.com/Dylan-Bolink/eurorack/tree/master/marbles)
+  and Mutable Instruments Grids** — the drum pattern topology and node tables
+  are adapted from them, under their GPLv3-or-later license.
+
+CHIPDRUM is an independent, unofficial firmware. It is not affiliated with or
+endorsed by TECLA.
 
 ## Architecture
 
