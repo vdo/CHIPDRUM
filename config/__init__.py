@@ -1,1 +1,0 @@
-# Paquet de configuració
