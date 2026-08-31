@@ -3,13 +3,13 @@ cmake_minimum_required(VERSION 3.13)
 # Pico SDK (set PICO_SDK_PATH, or let it fetch from git)
 include(pico_sdk_import.cmake)
 
-project(tecla_bass C CXX ASM)
+project(chipdrum C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
-add_executable(tecla_bass
+add_executable(chipdrum
     src/main.c
     src/hardware.c
     src/voice.c
@@ -34,9 +34,9 @@ add_executable(tecla_bass
     src/modes/mode_syndrum.c
 )
 
-target_include_directories(tecla_bass PRIVATE src)
+target_include_directories(chipdrum PRIVATE src)
 
-target_link_libraries(tecla_bass
+target_link_libraries(chipdrum
     pico_stdlib
     pico_multicore
     pico_flash
@@ -51,7 +51,7 @@ target_link_libraries(tecla_bass
 # bootloader remotely ("picotool reboot -f -u"), so updating it in a rack does
 # not need physical access to the BOOTSEL button.
 # UART stdio is off: GP0/GP1 are the voice-3 and clock-out jacks.
-pico_enable_stdio_usb(tecla_bass 1)
-pico_enable_stdio_uart(tecla_bass 0)
+pico_enable_stdio_usb(chipdrum 1)
+pico_enable_stdio_uart(chipdrum 0)
 
-pico_add_extra_outputs(tecla_bass) # produces .uf2
+pico_add_extra_outputs(chipdrum) # produces .uf2

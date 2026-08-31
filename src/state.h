@@ -1,5 +1,5 @@
 // =============================================================================
-// TECLA BASS - global state shared between cores
+// CHIPDRUM - global state shared between cores
 // =============================================================================
 #pragma once
 #include <stdbool.h>

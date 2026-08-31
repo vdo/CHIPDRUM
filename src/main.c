@@ -1,5 +1,5 @@
 // =============================================================================
-// TECLA BASS - generative bass/rhythm synth voice for Eurorack
+// CHIPDRUM - generative drum, bass & drone voice for Eurorack
 // Raspberry Pi Pico (RP2040), Pico SDK
 //
 // Outputs: 3 PWM square-wave oscillators (GP22 bass, GP2 sub, GP0 accent)
@@ -77,7 +77,7 @@ int main(void) {
     MODES[g.mode_idx]->reset();
     multicore_launch_core1(ui_core1_entry);
     led_startup_animation();
-    printf("TECLA BASS ready, mode %s\n", MODES[g.mode_idx]->name);
+    printf("CHIPDRUM ready, mode %s\n", MODES[g.mode_idx]->name);
 
     uint64_t last_us = time_us_64();
     uint64_t t_buttons = 0, t_adc = 0;

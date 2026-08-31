@@ -1,4 +1,4 @@
-// Host-side test of the pure algorithmic parts of the TECLA BASS firmware.
+// Host-side test of the pure algorithmic parts of the CHIPDRUM firmware.
 // Compiles the real header logic natively (no Pico SDK involved).
 #include <math.h>
 #include <stdint.h>

@@ -1,6 +1,6 @@
-# TECLA BASS
+# CHIPDRUM
 
-Generative bass & rhythm synth voice for Eurorack, on a Raspberry Pi Pico
+Generative drum, bass & drone voice for Eurorack, on a Raspberry Pi Pico
 (RP2040). C firmware built with the Pico SDK.
 
 Three PWM square-wave oscillators driven by six generative modes: two drum
@@ -32,7 +32,7 @@ LED3–7 = selected parameter slot.
 
 ## Clock
 
-- One tick = one 16th note. **CLK OUT emits every tick** — TECLA can be the
+- One tick = one 16th note. **CLK OUT emits every tick** — CHIPDRUM can be the
   master clock of your rack.
 - Patch a clock into **CLK IN** and the engine locks to it (LED1 lights). The
   slider then selects **÷8 ÷6 ÷4 ÷3 ÷2 ×1 ×2 ×3 ×4** — clock multiplication
@@ -98,7 +98,7 @@ cmake --build build -j8
 Builds and flashes the connected Pico. **No BOOTSEL button needed** — the
 script reboots the board into the bootloader for you:
 
-- Already running TECLA BASS → a **1200-baud touch** on its USB serial port
+- Already running CHIPDRUM → a **1200-baud touch** on its USB serial port
   drops it into the bootloader. This is why USB stdio is enabled: a module
   screwed into a rack can be updated without reaching the PCB.
 - Still running the original CircuitPython firmware → the script unmounts
@@ -110,7 +110,7 @@ script reboots the board into the bootloader for you:
 Manual equivalent, once the `RPI-RP2` bootloader volume is mounted:
 
 ```sh
-cp build/tecla_bass.uf2 /Volumes/RPI-RP2/
+cp build/chipdrum.uf2 /Volumes/RPI-RP2/
 ```
 
 ⚠️ Copying the `.uf2` onto a **CIRCUITPY** drive does nothing — that drive is
@@ -131,7 +131,7 @@ Sequenciador) and sends **USB MIDI** alongside the PWM outputs.
 This firmware is a native C rewrite on the same hardware, and the difference
 is more than the language:
 
-- **No Python is loaded.** `tecla_bass.uf2` is bare-metal Cortex-M0+ code
+- **No Python is loaded.** `chipdrum.uf2` is bare-metal Cortex-M0+ code
   built against the Pico SDK. There is no interpreter, no import at boot and
   no `main.py`: the module executes the compiled image directly. Changing
   behaviour means editing C and reflashing, not editing a file on a drive.
@@ -154,7 +154,7 @@ either direction is a UF2 copy.
 
 ### Reverting to the original TECLA firmware
 
-1. **Get into the bootloader.** With TECLA BASS running, a 1200-baud touch on
+1. **Get into the bootloader.** With CHIPDRUM running, a 1200-baud touch on
    its serial port does it without reaching the PCB:
 
    ```sh
@@ -281,6 +281,56 @@ Two things worth knowing: the PWM carrier wants an RC filter (1 kΩ + 10 nF)
 per output for a clean reconstruction, and writing settings to flash briefly
 suspends playback. Automatic mode saving is deferred until the menu has been
 still for one second; use EXTRA1+EXTRA2 between phrases for manual saves.
+
+## Audio quality (the drum output)
+
+The bass and drone modes emit a raw square straight from a PWM slice — no
+sample rate, no conversion, nothing in the path to measure. The drum modes are
+the interesting case, because there the same slice is pressed into service as a
+DAC.
+
+During playback the carrier runs at 100 kHz and the 25 kHz audio interrupt
+writes each sample into the duty register:
+
+| | |
+|---|---|
+| Resolution | 1250 duty steps ≈ **10.3 bits** |
+| Sample rate | 25 kHz → **12.5 kHz** of bandwidth |
+| Measured noise floor | **58.7 dB** below full scale |
+
+That last figure is measured rather than derived: `tools/preview_synth.sh` runs
+the synth's output through the same conversion the firmware uses and prints the
+error it introduces. It lands at 58.7 dB for kick, snare and hat alike, because
+quantization noise does not care which drum it is riding on. Referred to what
+you actually hear it is lower — a drum spends most of its length decaying, so
+by the end of a kick tail it is closer to 47 dB.
+
+Two things keep it a few dB under the theoretical ceiling. The conversion
+truncates instead of rounding, which costs about 6.5 dB and would take one extra
+add per sample to fix; and there is no dither, so a long sine-like kick tail
+grains rather than hisses.
+
+**Bandwidth.** Hats go soft at the very top. Counting the zero-order hold droop
+and the RC filter the outputs want (1 kΩ + 10 nF), the response is flat to
+1 kHz, about −1 dB at 5 kHz and −4 dB at 10 kHz. The first image sits ~17 dB
+down and the 100 kHz carrier ~16 dB down — harmless into a rack, where
+everything downstream is band-limited, but add a second RC pole if you record a
+jack straight into an interface.
+
+**DC.** The pin idles at exactly mid-supply, so the drum output carries a
+half-supply offset that a low-pass will not remove. That is what a DC-coupled
+Eurorack input expects; AC-couple it if you are going somewhere else.
+
+**What limits what.** In SYNDRUM the DAC is the limit. In DRUMS it is not: the
+stored samples are unsigned 8-bit, a ~50 dB ceiling, and every 8-bit code still
+lands on its own duty step — so there the kit is the limit, not the hardware.
+Flash is not what holds it there either, since all three kits together are 64 KB
+and the whole firmware occupies 142 KB of the RP2040's 2 MB. A deeper sample
+format is affordable if you want one.
+
+In round numbers: **roughly 10-bit audio in a 12.5 kHz band** — a little finer
+than the 8-bit drum machines of the early eighties, and close to an SP-1200 in
+bandwidth. The grain is a characteristic of the format, not a defect in it.
 
 ## Tests
 
