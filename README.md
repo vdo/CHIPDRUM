@@ -91,6 +91,56 @@ cmake --build build -j8
 > USB support — the build succeeds but the module has no USB serial and can
 > only be re-flashed with the BOOTSEL button.
 
+### macOS toolchain (Homebrew)
+
+If linking fails on `bs2_default.elf` with errors like:
+
+```
+arm-none-eabi-ld: cannot find -lg: Invalid argument
+arm-none-eabi-ld: cannot find -lc: Invalid argument
+collect2: error: ld returned 1 exit status
+```
+
+the Homebrew **formula** `arm-none-eabi-gcc` is installed, but it ships
+without newlib (no `libc.a`/`libg.a`), so the linker has nothing to link the
+boot stage 2 firmware against — it's the only build target that needs the
+full ARM cross-toolchain, which is why the rest of the project still builds.
+
+Use the **cask** instead, which installs ARM's official toolchain (gcc +
+binutils + newlib, matched) into `/Applications/ArmGNUToolchain/`:
+
+```sh
+brew uninstall arm-none-eabi-gcc arm-none-eabi-binutils
+brew install --cask gcc-arm-embedded
+```
+
+Then verify before rebuilding:
+
+```sh
+brew list --cask gcc-arm-embedded          # no "Broken Link" warnings
+ls -la $(which arm-none-eabi-gcc)          # resolves into /Applications/ArmGNUToolchain/...
+find /Applications/ArmGNUToolchain -iname "libc.a"   # returns real paths
+```
+
+If the cask is already installed but broken (dangling symlinks in
+`/opt/homebrew/bin/`), reinstall it cleanly first:
+
+```sh
+brew uninstall --cask gcc-arm-embedded --force --zap
+rm -f /opt/homebrew/bin/arm-none-eabi-*
+brew untap armmbed/formulae
+brew install --cask gcc-arm-embedded
+```
+
+Then do a clean reconfigure — stale CMake cache in `build/` will otherwise
+keep pointing at the old, broken toolchain:
+
+```sh
+rm -rf build
+cmake -S . -B build -DPICO_SDK_PATH=$HOME/pico-sdk -DPICO_BOARD=pico -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j8
+```
+
 ## Flashing
 
 ```sh
